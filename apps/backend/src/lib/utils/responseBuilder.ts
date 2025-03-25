@@ -2040,21 +2040,67 @@ export const quoteSubscription = (
 				},
 				tags: item?.tags,
 				item:
-					item.title === "tax"
-						? {
+					{			fullfillment_ids:(scenario === 'full-payment')?['FII']:undefined,
 								id: item?.id,
-						  }
-						: {
-								id: item?.id,
-								price: item?.price,
+								price: {currency:item?.price?.currency, value:item?.price.value},
 								quantity: item?.quantity ? item?.quantity : undefined,
 						  },
 			});
 		});
 
 		//MAKE DYNAMIC BREACKUP USING THE DYANMIC ITEMS
-
+		if(scenario !== 'full-payment' && scenario !== 'manual-payment' && scenario !== 'e-mandate'){
+			breakup?.push(
+				{
+					title: "tax",
+					price: {
+						currency: "INR",
+						value: "10",
+					},
+					item: {id:items[0].id},
+					tags: [
+						{
+							descriptor: {
+								code: "title",
+							},
+							list: [
+								{
+									descriptor: {
+										code: "type",
+									},
+									value: "tax",
+								},
+							],
+						},
+					],
+				},
+				{
+					title: "discount",
+					price: {
+						currency: "INR",
+						value: "10",
+					},
+					item: {id:items[0].id},
+					tags: [
+						{
+							descriptor: {
+								code: "title",
+							},
+							list: [
+								{
+									descriptor: {
+										code: "type",
+									},
+									value: "discount",
+								},
+							],
+						},
+					],
+				}
+			);
+		}
 		//ADD STATIC TAX AND DISCOUNT FOR ITEM ONE
+<<<<<<< Updated upstream
 		breakup?.push(
 			{
 				title: "tax",
@@ -2103,6 +2149,9 @@ export const quoteSubscription = (
 				],
 			}
 		);
+=======
+		
+>>>>>>> Stashed changes
 
 		let totalPrice = 0;
 		breakup.forEach((entry) => {
@@ -2117,12 +2166,17 @@ export const quoteSubscription = (
 			}
 		});
 
+
 		const quotePrice =
 			scenario === "single-order"
 				? totalPrice
-				: calculateQuotePrice(
+				: (scenario === "full-payment") ? totalPrice: calculateQuotePrice(
 						fulfillment?.stops[0]?.time?.duration,
+<<<<<<< Updated upstream
 						fulfillment?.stops[0]?.time.schedule?.frequency,
+=======
+						fulfillment?.stops[0]?.time?.schedule?.frequency ,
+>>>>>>> Stashed changes
 						totalPrice
 				  );
 
@@ -2454,7 +2508,7 @@ rangeEnd.setHours(rangeEnd.getHours() + 3);
 					ele.time.label = FULFILLMENT_LABELS.CONFIRMED;
 					return ele;
 				}),
-				tags: {
+				tags:{
 					descriptor: {
 						code: "schedule",
 					},
@@ -2561,6 +2615,40 @@ rangeEnd.setHours(rangeEnd.getHours() + 3);
 						...fulfillmentObj,
 						id: "F2",
 					});
+				}
+				if (domain === "weightment") {
+					updatedFulfillments = updatedFulfillments.map((itm: any) => ({
+						...itm,
+						stops: itm.stops?.length
+							? [
+									{
+										...itm.stops[0],
+										location: {
+											gps: "12.974002,77.613458",
+											area_code: "560001",
+										},
+									},
+									...itm.stops.slice(1),
+								]
+							: itm.stops,
+					}));
+				}
+				if(domain === 'subscription' && scenario==='subscription-with-full-payment' || scenario==='subscription-with-manual-payments' || scenario==='subscription-with-eMandate' ){
+					updatedFulfillments.tags=[
+            {
+              "descriptor": {
+                "code": "INFO"
+              },
+              "list": [
+                {
+                  "descriptor": {
+                    "code": "PARENT_ID"
+                  },
+                  "value": "F1"
+                }
+              ]
+            }
+          ]
 				}
 				break;
 			case ON_ACTION_KEY.ON_CONFIRM:

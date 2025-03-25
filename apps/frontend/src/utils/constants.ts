@@ -481,8 +481,8 @@ export const INITIATE_FIELDS = {
 			domainDepended: true,
 			options: {
 				retail: B2B_SCENARIOS["init"].map((each) => each.scenario),
-				// subscription:PRINT_MEDIA_SCENARIOS["init"].map((each) => each.scenario),
-				// agrioutput:AGRI_OUTPUT_SCENARIOS["init"].map((each)=>each.scenario),
+				subscription:PRINT_MEDIA_SCENARIOS["init"].map((each) => each.scenario),
+				// agrioutput: AGRI_SCENARIOS["init"].map((each) => each.scenario),
 				b2b: B2B_SCENARIOS["init"].map((each) => each.scenario),
 				// retail: B2B_SCENARIOS["init"].map((each) => each.scenario),
 				// services: SERVICES_SCENARIOS["init"].map((each) => each.scenario),
@@ -502,7 +502,7 @@ export const INITIATE_FIELDS = {
 			type: "select",
 			domainDepended: true,
 			options: {
-				// services: SERVICES_SCENARIOS["confirm"].map((each) => each.scenario),
+				subscription: PRINT_MEDIA_SCENARIOS["confirm"].map((each) => each.scenario),
 			},
 		},
 	],

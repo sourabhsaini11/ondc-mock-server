@@ -77,7 +77,14 @@ const intializeRequest = async (
 			({ location_ids, ...items }: { location_ids: any }) => items
 		);
 
+<<<<<<< Updated upstream
 		let quoteData: any = transaction?.message?.order?.quote?transaction?.message?.order?.quote:quoteSubscription(
+=======
+		let init;
+		if(context.domain===SUBSCRIPTION_DOMAINS.PRINT_MEDIA){
+
+		let quoteData: any = transaction?.message?.order?.quote ? transaction?.message?.order?.quote : quoteSubscription(
+>>>>>>> Stashed changes
 			items,
 			providersItems,
 			"",
@@ -121,7 +128,7 @@ const intializeRequest = async (
 
 		const response = YAML.parse(file.toString());
 
-		const init = {
+		let init = {
 			context: {
 				...context,
 				timestamp: new Date().toISOString(),
@@ -134,7 +141,7 @@ const intializeRequest = async (
 				order: {
 					provider: {
 						...provider,
-						locations: [{ id: uuidv4() }],
+						// locations: [{ id: uuidv4() }],
 					},
 					items,
 					billing: BILLING_DETAILS,
@@ -151,6 +158,121 @@ const intializeRequest = async (
 				},
 			},
 		};
+
+		init.message.order.items[0].quantity={
+			selected:{
+				count:1
+			}
+		}
+		if(scenario === 'single-order-offline-without-subscription' || scenario ==="single-order-online-without-subscription"){
+			
+			delete init.message.order.items[0].tags ; delete init.message.order.items[0]?.price ; delete init.message.order.items[0]?.title
+			delete init.message.order.payments[0].params
+			init.message.order.fulfillments[0].stops[0]={
+				...init.message.order.fulfillments[0].stops[0],
+				location:{
+					"address": "My House #, My buildin",
+					"area_code": "560001",
+					"city": {
+							"name": "Bengaluru"
+					},
+					"country": {
+							"code": "IND"
+					},
+					"gps": "12.974002,77.613458",
+					"state": {
+							"name": "Karnataka"
+					}
+			},
+			contact:{
+				"phone": "9886098860"
+			}
+			}
+			delete init.message.order.fulfillments[0].tags
+			delete init.message.order.provider.locations
+		}
+		if(scenario === 'subscription-with-full-payments'){
+			init.message.order.fulfillments=[
+				{
+					...init.message.order.fulfillments[0],
+					
+					stops:[{
+						...init.message.order.fulfillments[0].stops[0],
+						type:"start",
+						contact:{
+							phone:"9886098860"
+						},
+						time:{
+						days:"4",
+						...init.message.order.fulfillments[0].stops[0].time
+					}}]
+				}
+			]
+			
+			delete init.message.order.fulfillments[0].stops[0].duration
+			delete init.message.order.fulfillments[0].stops[0].schedule
+		}
+		if(scenario === 'subscription-with-manual-payment'){
+			init.message.order.fulfillments=[
+				{
+					...init.message.order.fulfillments[0],
+					stops:[{
+						...init.message.order.fulfillments[0].stops[0],
+						type:"start",
+						contact:{
+							phone:"9886098860"
+						},
+						time:{
+						days:"4",
+						...init.message.order.fulfillments[0].stops[0].time
+					}}]
+				}
+			]
+			init.message.order.payments[0].collected_by="BPP"
+			delete init.message.order.fulfillments[0].stops[0].duration
+			delete init.message.order.fulfillments[0].stops[0].schedule
+		}
+	}
+	else	{
+		let file = fs.readFileSync(
+					path.join(SUBSCRIPTION_EXAMPLES_PATH, "init/init.yaml")
+				);
+		const response = YAML.parse(file.toString());
+		let init = {
+			context: {
+				...context,
+				timestamp: new Date().toISOString(),
+				action: ACTTION_KEY.INIT,
+				bap_id: MOCKSERVER_ID,
+				bap_uri: SUBSCRIPTION_BAP_MOCKSERVER_URL,
+				message_id: uuidv4(),
+			},
+			message: {
+				order: {
+					provider: {
+						...provider,
+					},
+					items:[{...items[0],quantity:{
+						selected:{
+							count:1
+						}
+					}}],
+					billing: BILLING_DETAILS,
+					// fulfillments,
+					// quote,
+					payments: [
+						{
+							...response?.value?.message?.order?.payments[0],
+						},
+					],
+				},
+			},
+		};
+		}
+
+
+		console.log("inittttttitititi",JSON.stringify(init))
+
 		await send_response(
 			res,
 			next,

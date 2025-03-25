@@ -20,6 +20,7 @@ import { ON_ACTION_KEY } from "../../../lib/utils/actionOnActionKeys";
 import { ERROR_MESSAGES } from "../../../lib/utils/responseMessages";
 import axios from "axios";
 import { AxiosError } from "axios";
+import { SUBSCRIPTION_DOMAINS } from "../../../lib/utils/apiConstants";
 
 export const initController = async (
 	req: Request,
@@ -94,8 +95,13 @@ const initConsultationController = (
 			providersItems,
 			"",
 			fulfillments[0]
+<<<<<<< Updated upstream
 		);
 
+=======
+		):quote
+		quoteData = req.body.quote ? req.body.quote :quoteData
+>>>>>>> Stashed changes
 		/*****HANDLE SCENARIOS OF INIT*****/
 		switch (scenario) {
 			case "subscription-with-manual-payments":
@@ -165,6 +171,41 @@ const initConsultationController = (
 		};
 
 		delete req.body?.providersItems;
+		if(context.domain===SUBSCRIPTION_DOMAINS.AUDIO_VIDEO){
+			responseMessage.order.fulfillments=[{id:"FI1",type:"ONLINE"}]
+			delete responseMessage.order.locations
+		}
+
+		if(scenario === 'single-order-offline-without-subscription'){
+			delete responseMessage.order.items[0].tags ; delete responseMessage.order.items[0].price;
+			delete responseMessage.order.items[0].title;
+		 responseMessage.order.fulfillments[0].tags = [
+				{
+						"descriptor": {
+								"code": "INFO"
+						},
+						"list": [
+								{
+										"descriptor": {
+												"code": "PARENT_ID"
+										},
+										"value": "F1"
+								}
+						]
+				}
+		] ;
+			delete responseMessage.order.fulfillments[0].stops[0].location 
+			responseMessage.order.fulfillments[0].stops[0].time={
+				...responseMessage.order.fulfillments[0].stops[0].time,
+				days:"4"
+			}
+		}
+		 if(scenario === 'subscription-with-full-payments'){
+			delete responseMessage.order.items[0].tags
+			delete responseMessage.order.items[0].tittle
+			delete responseMessage.order.items[0].price
+		 }
+
 
 		responseBuilder(
 			res,

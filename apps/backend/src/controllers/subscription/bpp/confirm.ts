@@ -13,7 +13,7 @@ import {
 	updateFulfillments,
 } from "../../../lib/utils";
 import { ON_ACTION_KEY } from "../../../lib/utils/actionOnActionKeys";
-import { ORDER_STATUS, PAYMENT_STATUS } from "../../../lib/utils/apiConstants";
+import { ORDER_STATUS, PAYMENT_STATUS, SUBSCRIPTION_DOMAINS } from "../../../lib/utils/apiConstants";
 import { ERROR_MESSAGES } from "../../../lib/utils/responseMessages";
 import axios, { AxiosError } from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -66,8 +66,22 @@ export const confirmConsultationController = async (
 		const responseMessage = {
 			order: {
 				...order,
-				status: ORDER_STATUS.ACCEPTED.toUpperCase(),
-				fulfillments,
+				status: ORDER_STATUS.ACCEPTED,
+				fulfillments:(context.domain===SUBSCRIPTION_DOMAINS.AUDIO_VIDEO)?[{...order.fulfillments[0],"tags": [
+                        {
+                            "descriptor": {
+                                "code": "INFO"
+                            },
+                            "list": [
+                                {
+                                    "descriptor": {
+                                        "code": "PARENT_ID"
+                                    },
+                                    "value": "F1"
+                                }
+                            ]
+                        }
+                    ]}]:order.fulfillments,
 				provider: {
 					...order.provider,
 					rateable: true,
@@ -76,10 +90,142 @@ export const confirmConsultationController = async (
 					{
 						...order?.payments[0],
 						status: PAYMENT_STATUS.PAID,
+						
 					},
 				],
 			},
 		};
+		if(context.domain===SUBSCRIPTION_DOMAINS.AUDIO_VIDEO){
+			
+			return responseBuilder(
+				res,
+				next,
+				context,
+				responseMessage,
+				`${req.body.context.bap_uri}${
+					req.body.context.bap_uri.endsWith("/")
+						? ON_ACTION_KEY.ON_CONFIRM
+						: `/${ON_ACTION_KEY.ON_CONFIRM}`
+				}`,
+				`${ON_ACTION_KEY.ON_CONFIRM}`,
+				"subscription"
+			);
+		}
+		else{
+			responseMessage.order.fulfillments[0].state={
+				descriptor:{
+					code:"PENDING"
+				}
+			}
+			responseMessage.order.payments[0].tag=[
+				{
+						"descriptor": {
+								"code": "PAYMENT_METHOD",
+								"name": "Payment Method"
+						},
+						"list": [
+								{
+										"descriptor": {
+												"code": "MODE"
+										},
+										"value": "MANUAL_EMI"
+								}
+						]
+				},
+				{
+						"descriptor": {
+								"code": "BUYER_FINDER_FEES"
+						},
+						"display": false,
+						"list": [
+								{
+										"descriptor": {
+												"code": "BUYER_FINDER_FEE_TYPE"
+										},
+										"value": "percent"
+								},
+								{
+										"descriptor": {
+												"code": "BUYER_FINDER_FEE_AMOUNT"
+										},
+										"value": "0"
+								}
+						]
+				},
+				{
+						"descriptor": {
+								"code": "INFO"
+						},
+						"display": false,
+						"list": [
+								{
+										"descriptor": {
+												"code": "TOTAL_PAYMENTS"
+										},
+										"value": "8"
+								}
+						]
+				}
+		]
+		responseMessage.order.cancellation_terms = [
+            {
+                "cancellation_fee": {
+                    "amount": {
+                        "currency": "INR",
+                        "value": "0.00"
+                    },
+                    "percentage": "0.00"
+                },
+                "fulfillment_state": {
+                    "descriptor": {
+                        "code": "PENDING",
+                        "short_desc": "002"
+                    }
+                }
+            }
+        ]
+				responseMessage.order.items[0].tags= [
+                    {
+                        "descriptor": {
+                            "code": "RESCHEDULE_TERMS"
+                        },
+                        "list": [
+                            {
+                                "descriptor": {
+                                    "code": "FULFILLMENT_STATE"
+                                },
+                                "value": "Pending"
+                            },
+                            {
+                                "descriptor": {
+                                    "code": "RESCHEDULE_ELIGIBLE"
+                                },
+                                "value": "true"
+                            },
+                            {
+                                "descriptor": {
+                                    "code": "RESCHEDULE_FEE"
+                                },
+                                "value": "0.00"
+                            },
+                            {
+                                "descriptor": {
+                                    "code": "RESCHEDULE_WITHIN"
+                                },
+                                "value": "PT1D"
+                            }
+                        ]
+                    },
+                    {
+                        "descriptor": {
+                            "code": "TNC_LINK",
+                            "name": "Terms & Conditions",
+                            "short_desc": "Terms and Conditions"
+                        },
+                        "value": "https://abc.com/tnc.html"
+                    }
+                ]
+		console.log("on_confirm",JSON.stringify(responseMessage))
 
 		responseBuilder(
 			res,
@@ -97,13 +243,15 @@ export const confirmConsultationController = async (
 
 		if (
 			scenario !== "single-order-offline-without-subscription" &&
-			scenario !== "single-order-online-without-subscription"
+			scenario !== "single-order-online-without-subscription" && 
+			scenario !== "subscription-with-eMandate"
 		) {
 			//get range for confirm calls
 			const range = getRangeUsingDurationFrequency(
-				fulfillments[0]?.stops[0]?.time?.duration,
-				fulfillments[0]?.stops[0]?.time?.schedule?.frequency
+				fulfillments[0]?.stops[0]?.duration,
+				fulfillments[0]?.stops[0]?.schedule?.frequency
 			);
+			
 
 			/********************CHILD ORDER RESPONSE */
 			let childOrderResponse = structuredClone({
@@ -286,7 +434,7 @@ export const confirmConsultationController = async (
 				}
 				// context.message_id = uuidv4();
 				childOrderResponseBuilder(
-					i,
+					0,
 					res,
 					context,
 					childOrderResponse,
@@ -299,7 +447,7 @@ export const confirmConsultationController = async (
 				);
 
 				await childOrderResponseBuilder(
-					i,
+					0,
 					res,
 					context,
 					onUpdateOrderResponse,
@@ -310,14 +458,14 @@ export const confirmConsultationController = async (
 				);
 
 				await childOrderResponseBuilder(
-					i,
+					0,
 					res,
 					context,
 					responseMessage2,
 					`${req.body.context.bap_uri}${
 						req.body.context.bap_uri.endsWith("/") ? "on_update" : "/on_update"
 					}`,
-					"on_update1"
+					"on_update"
 				);
 				i++;
 			}, 1000);

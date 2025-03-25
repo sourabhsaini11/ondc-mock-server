@@ -14,6 +14,7 @@ import fs from "fs";
 import YAML from "yaml";
 import _ from "lodash";
 import path from "path";
+import { SUBSCRIPTION_DOMAINS } from "../../../lib/utils/apiConstants";
 
 export const initiateSelectController = async (
 	req: Request,
@@ -78,7 +79,7 @@ const intializeRequest = async (
 							range: {
 								start: providers?.[0]?.time?.schedule?.times?.[0] ?? new Date(),
 							},
-							duration: fulfillments?.[2]?.stops?.time?.duration
+							duration: (scenario === "subscription-with-full-payment")?"P8W":fulfillments?.[2]?.stops?.time?.duration
 								? fulfillments?.[2]?.stops?.time?.duration
 								: "P6M",
 							schedule: {
@@ -120,7 +121,7 @@ const intializeRequest = async (
 				fulfillment = fulfillment;
 		}
 
-		console.log("scenariosssssssssssss",scenario,fulfillment)
+		console.log("scenariosssssssssssss", scenario, fulfillment)
 
 		const select = {
 			context: {
@@ -149,12 +150,98 @@ const intializeRequest = async (
 						},
 					})),
 
-					fulfillments: fulfillment,
-					payments: [{ type: payments?.[0].type }],
+					fulfillments: (context.domain === SUBSCRIPTION_DOMAINS.PRINT_MEDIA) ? fulfillment : [{ type: "ONLINE" }],
+					payments: (context.domain === SUBSCRIPTION_DOMAINS.PRINT_MEDIA) ? [{ type: payments?.[0].type }] : undefined,
 				},
 			},
 		};
-		await send_response(res, next, select, transaction_id, "select",scenario);
+
+		if (scenario === "single-order-offline-without-subscription" || scenario === "single-order-online-without-subscription") {
+			select.message.order.fulfillments[0].tags = [
+				{
+					"descriptor": {
+						"code": "SELECTION"
+					},
+					"list": [
+						{
+							"descriptor": {
+								"code": "ITEM_IDS"
+							},
+							"value": select.message.order.items[0].id
+						}
+					]
+				}
+			]
+			delete select.message.order.fulfillments[0].stops[0].time.days
+			delete select.message.order.payments
+		}
+		if (scenario === "subscription-with-eMandate") {
+			select.message.order.fulfillments[0].tags = [...select.message.order.fulfillments[0].tags, {
+				"descriptor": {
+					"code": "SELECTION"
+				},
+				"list": [
+					{
+						"descriptor": {
+							"code": "ITEM_IDS"
+						},
+						"value": "I1"
+					}
+				]
+			}]
+			// delete select.message.order.fulfillments[0].stops[0].time.schedule
+			delete select.message.order.payments
+		}
+		if (scenario === "subscription-with-full-payment") {
+			delete select.message.order.payments;
+	
+			// Create a new fulfillment object
+			const updatedFulfillment = {
+					...select.message.order.fulfillments[0],
+					stops: [{
+							...select.message.order.fulfillments[0].stops[0],
+							type: "end",
+							time: {
+									...select.message.order.fulfillments[0].stops[0].time
+							}
+					}],
+					tags: [
+							{
+									"descriptor": {
+											"code": "INFO"
+									},
+									"list": [
+											{
+													"descriptor": {
+															"code": "PARENT_ID"
+													},
+													"value": "F1"
+											}
+									]
+							},
+							{
+									"descriptor": {
+											"code": "SELECTION"
+									},
+									"list": [
+											{
+													"descriptor": {
+															"code": "ITEM_IDS"
+													},
+													"value": select.message.order.items[0].id
+											}
+									]
+							}
+					]
+			};
+			delete updatedFulfillment.stops[0].time.schedule
+			// Remove the `id` property from the new fulfillment object
+			delete updatedFulfillment.id;
+	
+			// Assign the updated fulfillments array
+			select.message.order.fulfillments = [updatedFulfillment];
+	}		console.log("Context.domain", context.domain)
+		await send_response(res, next, select, transaction_id, "select", scenario);
 	} catch (error) {
 		return next(error);
 	}

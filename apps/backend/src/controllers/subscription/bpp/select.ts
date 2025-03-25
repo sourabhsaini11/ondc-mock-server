@@ -63,6 +63,7 @@ const selectConsultationConfirmController = (
 		}
 
 		/** DEFINE QUOTE AND FULFILLMENT HERE FOR MAIPULATION*/
+<<<<<<< Updated upstream
 		let quoteData = quoteSubscription(
 			message?.order?.items,
 			providersItems?.items,
@@ -76,13 +77,47 @@ const selectConsultationConfirmController = (
 			"",
 			"subscription"
 		);
+=======
+		// let quoteData = quoteSubscription(
+		// 	message?.order?.items,
+		// 	providersItems?.items,
+		// 	"",
+		// 	message?.order?.fulfillments[0]
+		// );
 
+		if (context.domain === SUBSCRIPTION_DOMAINS.PRINT_MEDIA) {
+			var updatedFulfillments = updateFulfillments(
+				message?.order?.fulfillments,
+				ON_ACTION_KEY?.ON_SELECT,
+				scenario as string || '',
+				"subscription"
+			);
+		}
+>>>>>>> Stashed changes
+
+		let quoteData;
 		switch (scenario) {
 			case "single-order-offline-without-subscription":
 				quoteData = quoteSubscription(
 					message?.order?.items,
 					providersItems?.items,
 					"single-order",
+					message?.order?.fulfillments[0]
+				);
+				break;
+			case "subscription-with-full-payment":
+				quoteData = quoteSubscription(
+					message?.order?.items,
+					providersItems?.items,
+					"full-payment",
+					message?.order?.fulfillments[0]
+				);
+				break;
+			case "subscription-with-manual-payments":
+				quoteData = quoteSubscription(
+					message?.order?.items,
+					providersItems?.items,
+					"manual-payment",
 					message?.order?.fulfillments[0]
 				);
 				break;
@@ -104,6 +139,7 @@ const selectConsultationConfirmController = (
 					message?.order?.fulfillments[0]
 				);
 		}
+<<<<<<< Updated upstream
 		let responseMessage: any = {
 			order: {
 				provider,
@@ -115,21 +151,73 @@ const selectConsultationConfirmController = (
 				),
 
 				fulfillments: updatedFulfillments,
+=======
+		if (context.domain === SUBSCRIPTION_DOMAINS.AUDIO_VIDEO) {
+			quoteData = quoteOTT(message?.order?.items, providersItems?.items);
+		}
+		let responseMessage: any = {
+			order: {
+				provider,
+				payments:
+					context.domain === SUBSCRIPTION_DOMAINS.PRINT_MEDIA
+						? message?.order?.payments
+						: undefined,
+				items:
+					context.domain === SUBSCRIPTION_DOMAINS.AUDIO_VIDEO
+						? message.order.items.map(
+								({
+									location_ids,
+									price,
+									quantity,
+									tags,
+									title,
+									...remaining
+								}: any) => ({
+									...remaining,
+								})
+						  )
+						: message.order.items.map(
+								({ location_ids, ...remaining }: any) => ({
+									...remaining,
+									location_ids,
+								})
+						  ),
+				fulfillments:
+					context.domain === SUBSCRIPTION_DOMAINS.PRINT_MEDIA
+						? updatedFulfillments
+						: [{ id: "F1", type: "ONLINE" }],
+>>>>>>> Stashed changes
 				quote: quoteData,
 			},
 		};
 
-		if (scenario === "subscription-with-manual-payments" || scenario === "subscription-with-full-payments") {
+		delete responseMessage.order.items[0].tags,
+		delete responseMessage.order.items[0].price,
+		delete responseMessage.order.items[0].quantity,
+		delete responseMessage.order.items[0].title;
+		delete responseMessage.order.fulfillments[0].tags[0];
+		if (scenario === "subscription-with-full-payment") {
+		
+			
+			responseMessage.order.fulfillments[0].stops = [
+				{
+					type: "start",
+					duration: "P8W",
+					schedule: {
+						frequency: "P1W",
+					},
+					...responseMessage.order.fulfillments[0].stops[0],
+				},
+			];
 			responseMessage.order.payments = [
 				{
-					id: "PG1",
 					collected_by: "BPP",
-					type: "PRE_FULFILLMENT",
+					id: "PG1",
 					tags: [
 						{
 							descriptor: {
-								name: "Payment Method",
 								code: "PAYMENT_METHOD",
+								name: "Payment Method",
 							},
 							list: [
 								{
@@ -141,16 +229,16 @@ const selectConsultationConfirmController = (
 							],
 						},
 					],
+					type: "PRE-FULFILLMENT",
 				},
 				{
-					id: "PG2",
 					collected_by: "bpp",
-					type: "PRE_FULFILLMENT",
+					id: "PG2",
 					tags: [
 						{
 							descriptor: {
-								name: "Payment Method",
 								code: "PAYMENT_METHOD",
+								name: "Payment Method",
 							},
 							list: [
 								{
@@ -162,16 +250,16 @@ const selectConsultationConfirmController = (
 							],
 						},
 					],
+					type: "PRE-FULFILLMENT",
 				},
 				{
-					id: "PG3",
 					collected_by: "bpp",
-					type: "PRE_FULFILLMENT",
+					id: "PG3",
 					tags: [
 						{
 							descriptor: {
-								name: "Payment Method",
 								code: "PAYMENT_METHOD",
+								name: "Payment Method",
 							},
 							list: [
 								{
@@ -183,10 +271,29 @@ const selectConsultationConfirmController = (
 							],
 						},
 					],
+					type: "PRE-FULFILLMENT",
 				},
 			];
+<<<<<<< Updated upstream
 		}
 
+=======
+			delete responseMessage.order.fulfillments[0].stops[0].time.duration;
+		}
+		if (scenario === "single-order-offline-without-subscription") {
+			delete responseMessage.order.items[0].tags,
+				delete responseMessage.order.items[0].price,
+				delete responseMessage.order.items[0].quantity,
+				delete responseMessage.order.items[0].title;
+			delete responseMessage.order.fulfillments[0]?.tags;
+			// responseMessage.order.items[0].price={
+			// 	currency:"INR",
+			// 	value:responseMessage.order.items[0].price.value
+			// }
+			delete responseMessage.order.payments;
+		}
+		console.log("====>", JSON.stringify(responseMessage));
+>>>>>>> Stashed changes
 		return responseBuilder(
 			res,
 			next,

@@ -258,40 +258,44 @@ export const onSelectSchema = {
                           required: ["label", "range"],
                         },
                         tags: {
-                          type: "object",
-                          properties: {
-                            descriptor: {
-                              type: "object",
-                              properties: {
-                                code: {
-                                  type: "string",
-                                },
-                              },
-                              required: ["code"],
-                            },
-                            list: {
-                              type: "array",
-                              items: {
+                          type: "array",
+                          items:{
+                            type:'object',
+                            properties: {
+                              descriptor: {
                                 type: "object",
                                 properties: {
-                                  descriptor: {
-                                    type: "object",
-                                    properties: {
-                                      code: {
-                                        type: "string",
-                                      },
-                                    },
-                                    required: ["code"],
-                                  },
-                                  value: {
+                                  code: {
                                     type: "string",
                                   },
                                 },
-                                required: ["descriptor", "value"],
+                                required: ["code"],
+                              },
+                              list: {
+                                type: "array",
+                                items: {
+                                  type: "object",
+                                  properties: {
+                                    descriptor: {
+                                      type: "object",
+                                      properties: {
+                                        code: {
+                                          type: "string",
+                                        },
+                                      },
+                                      required: ["code"],
+                                    },
+                                    value: {
+                                      type: "string",
+                                    },
+                                  },
+                                  required: ["descriptor", "value"],
+                                },
                               },
                             },
-                          },
-                          required: ["descriptor", "list"],
+                            required: ["descriptor", "list"],
+                          }
+                          
                         },
                       },
                       required: ["type", "time"],

@@ -35,7 +35,7 @@ export const signMessage = async (
 		signing_string,
 		sodium.from_base64(privateKey, base64_variants.ORIGINAL)
 	);
-	return sodium.to_base64(signedMessage, base64_variants.ORIGINAL);
+	return sodium.to_base64("signedMessage", base64_variants.ORIGINAL);
 };
 
 export const verifyMessage = async (
